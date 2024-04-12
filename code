@@ -1,0 +1,85 @@
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
+#define PIN        6 // On Trinket or Gemma, suggest changing this to 1
+#define NUMPIXELS 64 // Popular NeoPixel ring size
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+#define DELAYVAL 1000 // Time (in milliseconds) to pause between pixels
+#define DEFHUE 100
+#define DEFSAT 250
+#define DEFVAL 100
+int curH = 0, n = 8, m = 8, dHUE = 0;
+int bx = 3, by = 3;
+short vx = 1, vy = 1;
+
+void setup() {
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+  pixels.clear(); // Set all pixel colors to 'off
+  Serial.begin(9600);
+}
+
+void lightP(int x, int y, int state = 0) {
+  int ind;
+  if (y % 2 == 0)
+    ind = n * (y + 1) - 1 - x;
+  else
+    ind = y * n + x;
+  if (state == 1)
+    pixels.setPixelColor(ind, pixels.ColorHSV(0, 0, 0));
+  else
+    pixels.setPixelColor(ind, pixels.ColorHSV(DEFHUE + dHUE, DEFSAT, DEFVAL));    
+}
+
+void lightBar(int x, int y) {
+  lightP(x, y-1);
+  lightP(x, y);
+  lightP(x, y+1);
+}
+
+void moveBar(int x, int y) {
+  lightP(x, y);
+  lightP(x, y+1);
+  lightP(x, y+2);
+}
+
+void updBall() {
+  //if (bx == 1 && by + vy >= ly && by + by <= ly + 2 || bx == n - 2 && by + vy >= ry && by + by <= ry + 2) {
+  if (bx == 0 || bx == n - 1) {
+    vx = -vx;
+  }
+  if (by == 0 || by == m - 1) {
+    vy = -vy;
+  }
+  lightP(bx, by, 1);
+  bx += vx;
+  by += vy;
+  lightP(bx, by);
+}
+
+void printBall() {
+  for (int i = 0; i < by; ++i) {
+    for (int j = 0; j < n; ++j) 
+      Serial.print("+");
+    Serial.println("");
+  }
+  for (int i = 0; i < bx; ++i)
+    Serial.print("+");
+  Serial.print("o");
+  for (int i = bx + 1; i < n; ++i)
+    Serial.print("+");
+  Serial.println("");
+  for (int i = by + 1; i < m; ++i) {
+    for (int j = 0; j < n; ++j)
+      Serial.print("+");
+    Serial.println("");
+  }
+}
+
+void loop() {
+  updBall();
+  //pixels.show();   // Send the updated pixel colors to the hardware.
+  printBall();
+  delay(DELAYVAL); // Pause before next pass through loop
+}
